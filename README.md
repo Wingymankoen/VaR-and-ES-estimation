@@ -3,7 +3,7 @@ Hi!
 These files contain the code and data I ran for my thesis in Econometrics. It also provides the thesis itself for background information or a light Sunday read.
 Enjoy!
 
-# Abstract of the project:
+# Abstract of the project
 Banks are mandated to gauge market risk using internal models for Value-atRisk and Expected Shortfall. Broadly speaking, the models fall into three categories:
 unconditional, conditional and quantile. Using these categories and also including
 forecast combinations, we address two questions. First, we investigate which category of models provides ’adequate’ joint risk estimation at both a 1- and 5-day
