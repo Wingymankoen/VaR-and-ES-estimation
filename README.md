@@ -1,6 +1,7 @@
 # VaR-and-ES-estimation
 Hi!
-These files contain the code and data I ran for my thesis in Econometrics. It also provides the thesis itself for background information or a light Sunday read.
+These files contain the code and data I ran for my thesis in Econometrics. I am still changing the code to make it quicker, more readable and reliable, so updates will follow later. The main.R file runs the code for all 4 categories of models: Unconditional, Conditional, Quantile and Forecast Combinations. Additionally, there is a backtest.R file, which is not part of main.R, to take a look at the quality of the models.
+It also provides the thesis itself for background information or a light Sunday read.
 Enjoy!
 
 # Abstract of the project
