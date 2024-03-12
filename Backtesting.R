@@ -1,219 +1,48 @@
 # First install rstudioapi to find the main.R file location
-initial_package <- 'rstudioapi'
-if (!requireNamespace(initial_package, quietly = TRUE)) {
-  install.packages(initial_package, dependencies = TRUE)
-  library(initial_package, character.only = TRUE)
-} else {
-  library(initial_package, character.only = TRUE)
-}
+# List of packages to install
+packages_to_install <- c(
+  "rstudioapi",
+  "Matrix",
+  "readxl",
+  'GAS',
+  'rugarch',
+  'esback',
+  'esreg',
+  'dplyr',
+  'Formula',
+  'SparseM' ,
+  'quantreg',
+  'MCS' ,
+  'knitr'
+)
+
+# Install and load packages without messages
+invisible(lapply(packages_to_install, function(package) {
+  {
+    if (!requireNamespace(package, quietly = TRUE)) {
+      install.packages(package, dependencies = TRUE)
+    }
+    library(package, character.only = TRUE)
+  }
+}))
+
+# Get wd
 main_wd <- (dirname(rstudioapi::getActiveDocumentContext()$path))
 
-# Packages & functions ----------------------------------------------------
+# Functions ---------------------------------------------------------------
 
-library('Matrix')
-library('readxl')
-library('GAS')
-library('rugarch')
-library('esback')
-library('esreg')
-library('Formula')
-library('SparseM')
-library('quantreg')
-library('MCS')
-library('knitr')
-
-# Load data ---------------------------------------------------------------
-
-# Parameters
-starts <- 504
-days_ahead <- 1
-prob <- 0.05
-bank <- 'MS' # MS, HSBC, S&P500
-category <- 'Unconditional'
-
-# Load returns
-fileinput <- paste(main_wd, '/Data', sep = '')
-fileinput <- paste(fileinput, bank, sep = '/')
-fileinput <- paste(fileinput, '.csv', sep = '')
-data <- read.csv(fileinput, sep = ";")
-
-returns_h <- c()
-# Calculate h-day forward returns
-for (i in starts:(dim(data)[1] - days_ahead)) {
-  returns_h[i - starts + 1] <- sum(data[(i + 1):(i + days_ahead), ])
-}
-returns_h <- returns_h[1:(length(returns_h) - 1)]
-#returns_h<- returns_h[(days_ahead+1):length(returns_h)] # FOR FC
-
-# Load VaR & ES
-direct <-
-  paste(main_wd, '/Output', sep = '')
-direct <-
-  paste(direct,
-        as.character(days_ahead),
-        sep = '/')
-direct <- paste(direct, bank, sep = '/')
-direct <- paste(direct, category, sep = '/')
-
-var_est <-
-  read.csv(paste(direct, '_VaR.csv', sep = ''))
-es_est <-
-  read.csv(paste(direct, '_ES.csv', sep = ''))
-
-if (sum(is.na(es_est)) > 0) {
-  for (i in 1:dim(es_est)[2]) {
-    for (j in 1:dim(es_est)[1]) {
-      if (is.na(es_est[j, i])) {
-        es_est[j, i] = es_est[j - 1, i]
-      }
-    }
-  }
-}
-if (sum(is.na(var_est)) > 0) {
-  for (i in 1:dim(var_est)[2]) {
-    for (j in 1:dim(var_est)[1]) {
-      if (is.na(var_est[j, i])) {
-        var_est[j, i] = var_est[j - 1, i]
-      }
-    }
-  }
-}
-# VaR & ES Functions ------------------------------------------------------
-
-# VaR Testing
-var_test <- function(ret, val_at_risk, pval) {
-  no_models <- 1
-  test_output <- matrix(NA, nrow = 6, ncol = no_models)
-  hit_rate <- c()
-  
-  for (j in 1:no_models) {
-    tests <- BacktestVaR(data = ret,
-                         VaR = val_at_risk[1:length(ret), j],
-                         alpha = pval)
-    test_output[1:6, j] <-
-      c(
-        tests$LRuc[1],
-        tests$LRuc[2],
-        tests$LRcc[1],
-        tests$LRcc[2],
-        tests$DQ$stat,
-        tests$DQ$pvalue
-      )
-    hit_rate[j] <-
-      sum(ret < val_at_risk[1:length(ret), j]) / length(ret)
-  }
-  output <- rbind(test_output, hit_rate)
-  colnames(output) <- names(val_at_risk)
-  output <- round(output, 4)
-  return(output)
-}
-
-# ES Testing
-es_test <- function(ret, val_at_risk, exp_shf, pval) {
-  no_models <- 1#dim(val_at_risk)[2]
-  test_output <- matrix(NA, nrow = 5, ncol = no_models)
-  hit_rate <- c()
-  for (j in 1:no_models) {
-    test <-  ESTest(
-      alpha = pval,
-      actual = ret,
-      ES = exp_shf[1:length(ret), j],
-      VaR = val_at_risk[1:length(ret), j],
-    )
-    test_output[1:3, j] <-
-      c(test$expected.exceed, test$actual.exceed, test$p.value)
-    
-    test_output[4:5, j] <-
-      c(
-        esr_backtest(
-          r = ret,
-          q = val_at_risk[1:length(ret), j],
-          e = exp_shf[1:length(ret), j],
-          alpha = pval,
-          version = 2
-        )$pvalue_twosided_asymptotic,
-        esr_backtest(
-          r = ret,
-          q = val_at_risk[1:length(ret), j],
-          e = exp_shf[1:length(ret), j],
-          alpha = pval,
-          version = 1
-        )$pvalue_twosided_asymptotic
-      )
-    
-  }
-  
-  return(test_output)
-}
-
-# Model Confidence Set ----------------------------------------------------
-test_na <- function(x) {
-  if (sum(is.na(x)) > 0) {
-    for (i in 1:dim(x)[2]) {
-      for (j in 1:dim(x)[1]) {
-        if (is.na(x[j, i])) {
-          x[j, i] = x[j - 1, i]
+test_na<- function(x){
+  if(sum(is.na(x)) > 0 ){
+    for(i in 1: dim(x)[2]){
+      for(j in 1:dim(x)[1]){
+        if( is.na(x[j,i] ) ){
+          x[j,i]= x[j-1,i]
         }
       }
-    }
+    } 
   }
   return(x)
 }
-
-# Gather all models
-lloc_fc <- paste(main_wd, '/Output/', sep = '')
-lloc_fc <- paste(lloc_fc, as.character(days_ahead), sep = '')
-lloc_fc <- paste(lloc_fc, bank , sep = "/")
-
-lloc_fc_var <- paste(lloc_fc, '/Unconditional_VaR.csv' , sep = "")
-lloc_fc_es <- paste(lloc_fc, '/Unconditional_ES.csv' , sep = "")
-VaR_models_unc <- read.csv(lloc_fc_var)
-ES_models_unc <- read.csv(lloc_fc_es)
-
-lloc_fc_var <- paste(lloc_fc, '/Conditional_VaR.csv' , sep = "")
-lloc_fc_es <- paste(lloc_fc, '/Conditional_ES.csv' , sep = "")
-VaR_models_con <- read.csv(lloc_fc_var)
-ES_models_con <- read.csv(lloc_fc_es)
-
-lloc_fc_var <- paste(lloc_fc, '/Quantile_VaR.csv' , sep = "")
-lloc_fc_es <- paste(lloc_fc, '/Quantile_ES.csv' , sep = "")
-VaR_models_q <- read.csv(lloc_fc_var)
-ES_models_q <- read.csv(lloc_fc_es)
-
-lloc_fc_var <- paste(lloc_fc, '/FC_VaR.csv' , sep = "")
-lloc_fc_es <- paste(lloc_fc, '/FC_ES.csv' , sep = "")
-VaR_models_fc <- read.csv(lloc_fc_var)
-ES_models_fc <- read.csv(lloc_fc_es)
-
-shortest_l <- dim(VaR_models_fc)[1]
-extra <- 1 + days_ahead
-VaR_models_all <-
-  cbind(VaR_models_unc[extra:(shortest_l + extra - 1), ],
-        VaR_models_con[extra:(shortest_l + extra - 1), ],
-        VaR_models_q[extra:(shortest_l + extra - 1), ],
-        VaR_models_fc)
-ES_models_all <-
-  cbind(ES_models_unc[extra:(shortest_l + extra - 1), ], ES_models_con[extra:(shortest_l +
-                                                                                extra - 1), ], ES_models_q[extra:(shortest_l + extra - 1), ], ES_models_fc)
-
-VaR_models_all <- test_na(VaR_models_all)
-ES_models_all <- test_na(ES_models_all)
-total_models_all <- dim(VaR_models_all)[2]
-
-
-n_obs <-  dim(VaR_models_all)[1]
-n_models <- total_models_all
-
-returns_h <- c()
-# Calculate h-day forward returns
-for (i in starts:(length(data) - days_ahead)) {
-  returns_h[i - starts + 1] <- sum(data[(i + 1):(i + days_ahead)])
-}
-returns_h <- returns_h[2:(length(returns_h))]
-m_rth <- mean(returns_h)
-returns_h <- returns_h - m_rth
-VaR_models_all <- VaR_models_all - m_rth
-ES_models_all <- ES_models_all - m_rth
 
 loss_fct <- function(vlar, exs, rets, pval, days_a) {
   W <- 4
@@ -244,6 +73,76 @@ loss_fct <- function(vlar, exs, rets, pval, days_a) {
   return(outp)
 }
 
+# Load data ---------------------------------------------------------------
+
+# Parameters
+starts <- 504
+days_ahead <- 1
+prob <- 0.05
+bank <- 'MS' # MS, HSBC, S&P500
+category <- 'Unconditional'
+
+# Load returns
+fileinput <- paste(main_wd, '/Data', sep = '')
+fileinput <- paste(fileinput, bank, sep = '/')
+fileinput <- paste(fileinput, '.csv', sep = '')
+rets <- read.csv(fileinput)
+
+# Model Confidence Set ----------------------------------------------------
+
+lloc_fc <- paste(main_wd, '/Output/', sep = '')
+lloc_fc <- paste(lloc_fc, as.character(days_ahead), sep = '')
+lloc_fc <- paste(lloc_fc, bank , sep = "/")
+
+# Get a list of all CSV files in the folder
+csv_files <-
+  list.files(path = lloc_fc,
+             pattern = "\\.csv$",
+             full.names = TRUE)
+
+# Read all CSV files into a list
+invisible(lapply(csv_files, function(file) {
+  # Extract the file name without extension
+  file_name <- tools::file_path_sans_ext(basename(file))
+  
+  # Read the CSV file
+  data <- read.csv(file)
+  
+  # Assign the data frame to an object with the file name
+  assign(file_name, data, envir = .GlobalEnv)
+}))
+
+# Find the shortest length of the FC, as it combines all other datasets
+shortest_l <- dim(FC_VaR)[1]
+extra <- 1 + days_ahead
+VaR_models_all <-
+  cbind(Unconditional_VaR[extra:(shortest_l + extra - 1),],
+        Conditional_VaR[extra:(shortest_l + extra - 1),],
+        Quantile_VaR[extra:(shortest_l + extra - 1),],
+        FC_VaR)
+
+ES_models_all <-
+  cbind(Unconditional_ES[extra:(shortest_l + extra - 1),], Conditional_ES[extra:(shortest_l +
+                                                                               extra - 1),], Quantile_ES[extra:(shortest_l + extra - 1),], FC_ES)
+VaR_models_all <- test_na(VaR_models_all)
+ES_models_all <- test_na(ES_models_all)
+total_models_all <- dim(VaR_models_all)[2]
+n_obs <-  dim(VaR_models_all)[1]
+n_models <- total_models_all
+
+# Calculate h-day forward returns
+returns_h <- c()
+for (i in starts:(dim(rets)[1] - days_ahead)) {
+  returns_h[i - starts + 1] <- sum(rets[(i + 1):(i + days_ahead),])
+}
+returns_h <- returns_h[2:(length(returns_h))]
+
+# Lower the returns, VaR and ES by the mean of the returns
+m_rth <- mean(returns_h)
+returns_h <- returns_h - m_rth
+VaR_models_all <- VaR_models_all - m_rth
+ES_models_all <- ES_models_all - m_rth
+
 if (days_ahead == 1) {
   loss_final <-
     loss_fct(
@@ -254,6 +153,8 @@ if (days_ahead == 1) {
       days_a = days_ahead
     )
 }
+# For the 5 days ahead, we need to find the median of the MCS for improved
+# Stability of the results
 if (days_ahead == 5) {
   loss_final <-
     matrix(NA,
@@ -277,7 +178,7 @@ if (days_ahead == 5) {
         )
     }
     loss <- data.frame(loss)
-    loss_final[, m] <- apply(loss, 1, median, na.rm = T)
+    loss_final[, m] <- apply(loss, 1, median, na.rm = T) 
   }
   
 }
