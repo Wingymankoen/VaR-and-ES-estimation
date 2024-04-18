@@ -24,6 +24,7 @@ quantile_fct <-
     setwd(paste0(wd, '/src/Quantile scripts/'))
     files.sources = list.files()
     sapply(files.sources, source)
+    setwd(wd)
     
     # Set returns CAViar-ES
     returns_ar1 <-

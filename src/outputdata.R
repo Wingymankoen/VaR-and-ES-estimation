@@ -8,9 +8,8 @@ export_data <-
            weights = FALSE) {
     lloc <- paste0(wd, '/Output/')
     if (time_var) {
-      lloc <- paste0(lloc, as.character(days_ahead))
-      lloc <- paste0(lloc, '/')
-      lloc <- paste0(lloc, 'Time-variation/')
+      lloc <- paste(lloc, as.character(days_ahead))
+      lloc <- paste(lloc, 'Time-variation/', sep='/')
       lloc <- paste0(lloc, bank)
       lloc <- paste0(lloc, '/Volatilities.csv')
       write.csv(data,
@@ -18,10 +17,8 @@ export_data <-
                 row.names = FALSE)
     } else{
       lloc <- paste0(lloc, as.character(days_ahead))
-      lloc <- paste0(lloc, '/')
-      lloc <- paste0(lloc, bank)
-      lloc <- paste0(lloc, '/')
-      lloc <- paste0(lloc, category)
+      lloc <- paste(lloc, bank, sep='/')
+      lloc <- paste(lloc, category,sep='/')
       lloc_var <- paste0(lloc, "_VaR.csv")
       lloc_es <- paste0(lloc, "_ES.csv")
       if (category == 'FC') {
