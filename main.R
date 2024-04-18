@@ -35,6 +35,7 @@ read_packages(paste0(main_wd, '/requirements.txt'))
 # Read data
 df <- read_data(bank, main_wd)
 no_of_data <- dim(df)[1]
+setwd(main_wd)
 
 # Modelling ---------------------------------------------------------------
 
@@ -53,11 +54,11 @@ con_output <- conditional(
   starts = start_count,
   prob = prob,
   days_ahead = days_ahead,
-  len_r = no_of_data
+  len_r = no_of_data,
+  wd = main_wd
 )
 
 # Quantile models
-setwd(main_wd)
 quan_output <-
   quantile_fct(
     orig_returns = df,
@@ -77,6 +78,8 @@ export_data(
   category = 'Unconditional'
 )
 
+
+# Export data -------------------------------------------------------------
 export_data(
   data = con_output[[1]],
   wd = main_wd,
